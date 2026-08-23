@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel | Multimodal Deepfake Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-blue-950 text-blue-100 font-sans antialiased flex flex-col min-h-screen relative overflow-x-hidden">
+    
+    <div class="absolute inset-0 bg-grid z-0 pointer-events-none opacity-50"></div>
+    <div class="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-yellow-500/20 blur-[120px] rounded-full z-0 pointer-events-none"></div>
+
+    <header class="relative z-10 bg-blue-900/80 backdrop-blur-md border-b border-blue-800 py-4 px-8 flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L3 6v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.1l7-3.11v7z"/></svg>
+            <span class="text-xl font-bold text-white tracking-tight">Sentinel</span>
+        </div>
+        <div class="space-x-4 text-sm font-bold">
+            <a href="/login" class="text-blue-200 hover:text-yellow-400 transition-colors">Login</a>
+            <a href="/register" class="bg-yellow-500 text-blue-950 px-5 py-2 rounded-lg shadow-lg shadow-yellow-500/20 hover:bg-yellow-400 transition-all">Register</a>
+        </div>
+    </header>
+
+    <main class="relative z-10 flex-grow flex items-center justify-center p-6">
+        <div class="max-w-4xl w-full text-center space-y-10">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-white tracking-tight">
+                Multimodal <span class="text-yellow-400 drop-shadow-md">Deepfake Detection</span>
+            </h1>
+            <p class="text-lg text-blue-200 max-w-2xl mx-auto leading-relaxed">
+                Verify the authenticity of digital media in real-time. Sentinel analyzes visual micro-inconsistencies and synthetic speech patterns using Adaptive Multi-Modal Preprocessing.
+            </p>
+            
+            <div class="bg-blue-900/60 backdrop-blur-xl border border-blue-800 p-8 rounded-2xl shadow-2xl mt-12 text-left grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="font-bold text-white mb-4 border-b border-blue-700 pb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Research Highlights
+                    </h3>
+                    <ul class="text-sm text-blue-200 space-y-3 mt-4 font-medium">
+                        <li class="flex items-start gap-2"><span class="text-yellow-500 mt-0.5">✦</span> Adaptive Frame Consistency Profiling</li>
+                        <li class="flex items-start gap-2"><span class="text-yellow-500 mt-0.5">✦</span> Spectral Voice Irregularity Mapping</li>
+                        <li class="flex items-start gap-2"><span class="text-yellow-500 mt-0.5">✦</span> Dynamic Trust Fusion Engine</li>
+                        <li class="flex items-start gap-2"><span class="text-yellow-500 mt-0.5">✦</span> Zero-noise floor detection algorithms</li>
+                    </ul>
+                </div>
+                <div class="flex flex-col justify-center items-center bg-blue-950/50 border border-blue-800 rounded-xl p-8 text-center shadow-inner">
+                    <p class="text-sm text-blue-300 mb-6 font-medium">Access the prototype pipeline to analyze and cross-examine media.</p>
+                    <a href="/login" class="bg-gradient-to-r from-yellow-400 to-yellow-500 text-blue-950 px-8 py-3 rounded-xl font-extrabold shadow-lg shadow-yellow-500/25 hover:scale-105 transition-transform w-full uppercase tracking-wide">Enter Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="relative z-10 border-t border-blue-900 text-center py-6 text-xs text-blue-400 bg-blue-950 font-medium">
+        Sentinel Research Prototype &copy; 2026. All rights reserved.
+    </footer>
+</body>
+</html>

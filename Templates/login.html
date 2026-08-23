@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | Sentinel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-blue-950 flex items-center justify-center min-h-screen relative overflow-hidden">
+
+    <div class="absolute inset-0 bg-grid z-0 pointer-events-none"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/15 blur-[120px] rounded-full z-0 pointer-events-none"></div>
+
+    <div class="relative z-10 max-w-md w-full bg-blue-900/80 backdrop-blur-xl p-10 rounded-2xl shadow-2xl border border-blue-800 mx-4">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 mb-4 shadow-inner">
+                <svg class="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L3 6v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V8.1l7-3.11v7z"/></svg>
+            </div>
+            <h2 class="text-3xl font-black text-white tracking-tight uppercase">Sentinel Login</h2>
+            <p class="text-sm text-blue-300 mt-2 font-medium">Authorized access for system evaluation</p>
+        </div>
+
+        {% with messages = get_flashed_messages(category_filter=["error", "success"]) %}
+            {% if messages %}
+                <div class="mb-6 p-4 rounded-lg border text-sm font-bold
+                    {% if 'success' in messages[0] %} bg-emerald-500/10 text-emerald-400 border-emerald-500/30
+                    {% else %} bg-rose-500/10 text-rose-400 border-rose-500/30 {% endif %}">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="space-y-5">
+            <div>
+                <label class="block text-xs uppercase tracking-widest text-blue-300 font-bold mb-2">Researcher ID</label>
+                <input type="text" name="username" required 
+                       class="w-full bg-blue-950/80 border border-blue-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 transition-all placeholder-blue-700 font-medium" placeholder="Enter your ID">
+            </div>
+            <div>
+                <label class="block text-xs uppercase tracking-widest text-blue-300 font-bold mb-2">Passkey</label>
+                <input type="password" name="password" required 
+                       class="w-full bg-blue-950/80 border border-blue-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 transition-all placeholder-blue-700 font-medium" placeholder="••••••••">
+            </div>
+            <button type="submit" class="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-blue-950 font-black uppercase tracking-wide py-3.5 rounded-lg shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40 hover:scale-[1.02] transition-all duration-200 mt-2">
+                Authenticate Session
+            </button>
+        </form>
+
+        <p class="mt-8 text-center text-sm text-blue-400 font-medium">
+            Need an account? <a href="/register" class="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">Register here</a>
+        </p>
+    </div>
+
+</body>
+</html>
