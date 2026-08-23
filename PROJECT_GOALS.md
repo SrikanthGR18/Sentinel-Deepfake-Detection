@@ -34,3 +34,6 @@ Important:
 Do not add future features until core modules are fully implemented.
 
 The implementation must remain lightweight and suitable for a final-year engineering project.
+## Development Status
+
+The Sentinel project is currently under active development.
