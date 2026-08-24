@@ -76,3 +76,5 @@ desktop.ini
 *.tmp
 *.temp
 *.bak
+# Test videos
+test_videos/
