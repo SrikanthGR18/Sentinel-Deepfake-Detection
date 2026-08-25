@@ -78,3 +78,5 @@ desktop.ini
 *.bak
 # Test videos
 test_videos/
+# Generated analysis outputs
+outputs/
