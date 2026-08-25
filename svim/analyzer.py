@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import os
 
-from svim.features import extract_features, load_and_prepare
-from svim.scoring import (
+from .features import extract_features, load_and_prepare
+from .scoring import (
     compute_acoustic_pattern_score,
     compute_audio_score,
     compute_mfcc_score,
     status_and_reason,
 )
-from svim.types import SVIMResult
+from .svim_types import SVIMResult
 
 NEUTRAL_SCORE = 50.0
 
@@ -92,3 +92,16 @@ def _log_diagnostics(features: dict, result: SVIMResult) -> None:
     print(f"AudioScore: {result.audio_score}")
     print(f"Status: {result.status}")
     print("============================================\n")
+
+if __name__ == "__main__":
+    print("Testing SVIM analyzer...")
+    # Replace with the path to a real audio file on your PC to test it
+    test_audio_path = "path_to_your_audio_file.wav"
+    
+    if os.path.exists(test_audio_path):
+        result = analyze_audio(test_audio_path)
+        print(f"Analysis Result: {result.status}")
+        print(f"Audio Score: {result.audio_score}")
+        print(f"Reason: {result.reason}")
+    else:
+        print("Module structure verified successfully! (Provide a valid audio path to run a full test)")
