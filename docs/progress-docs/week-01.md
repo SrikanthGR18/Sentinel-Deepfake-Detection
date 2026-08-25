@@ -25,19 +25,19 @@
 - Added an externally generated Gemini AI video as an additional test case.
 - Implemented and executed the baseline video evaluation across 11 test videos.
 - Recorded video-level predictions, real/fake probabilities, votes, scores, and evaluation metrics.
-- Established the baseline performance of the existing video model.
-- Created a reusable Sentinel analysis pipeline integrating:
-  - AMMP – Adaptive Multi-Modal Preprocessing
-  - Video/spatial deepfake analysis
-  - Temporal analysis using optical flow
-  - SVIM – audio analysis
-  - DTFE – Trust Score Fusion
-- Created a pipeline test script for executing the complete Sentinel analysis on individual videos.
-- Verified FFmpeg availability and audio extraction functionality.
-- Tested the complete multimodal pipeline using the externally generated Gemini AI video.
+- Established the baseline performance of the existing video-based detection model.
+- Created a reusable Sentinel analysis pipeline connecting the existing Sentinel components:
+  - AMMP preprocessing
+  - Video/spatial analysis
+  - Temporal analysis
+  - SVIM audio analysis
+  - DTFE trust-score fusion
+- Created and executed a pipeline test script for testing the complete Sentinel analysis flow.
+- Verified FFmpeg availability and investigated audio streams in the evaluation videos.
+- Tested the complete Sentinel pipeline using the externally generated Gemini AI video.
 - Documented the baseline and multimodal experiment results.
-- Synchronized the development branch with the latest changes in the main branch, including the updated SVIM module structure.
-
+- Synchronized the development branch with the latest changes from the main branch.
+  
 ### Challenges Faced
 
 - The initial video testing script expected three return values while the prediction function returned a dictionary, causing a value-unpacking error.
@@ -182,7 +182,7 @@
 | Weak baseline performance on FaceForensics++ deepfakes | Srikanth | Established baseline and continued investigation through multimodal analysis | In Progress |
 | Gemini AI video classified as real by video model | Srikanth | Added temporal and audio analysis followed by DTFE fusion | Resolved at pipeline level |
 | FaceForensics++ test videos had no audio streams | Srikanth | Verified streams using FFmpeg; used external AI video for audio-enabled pipeline testing | Resolved |
-| SVIM module file structure changed during integration | Srikanth / Team | Synchronized local branch with latest `main` changes | Resolved |
+| SVIM module file structure changed during integration | Shivam | Synchronized local branch with latest `main` changes | Resolved |
 
 ---
 
