@@ -8,7 +8,18 @@ from PIL import Image
 from models.video_model import get_model
 
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# =========================================================
+# DEVICE
+# =========================================================
+
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+
+# =========================================================
+# LOAD MODEL
+# =========================================================
 
 model = get_model()
 
@@ -23,6 +34,10 @@ model.to(DEVICE)
 model.eval()
 
 
+# =========================================================
+# IMAGE TRANSFORMATION
+# =========================================================
+
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -33,48 +48,79 @@ transform = transforms.Compose([
 ])
 
 
+# =========================================================
+# FRAME EXTRACTION
+# =========================================================
+
 def extract_frames(video_path, num_frames=10):
 
     cap = cv2.VideoCapture(video_path)
 
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if not cap.isOpened():
+        return []
 
-    if total == 0:
+    total = int(
+        cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    )
+
+    if total <= 0:
         cap.release()
         return []
 
+    # Never request more frames than the video contains
+    sample_count = min(
+        num_frames,
+        total
+    )
+
+    # Uniformly sample across the entire video
     indices = np.linspace(
         0,
         total - 1,
-        num_frames,
+        sample_count,
         dtype=int
     )
+
+    # Avoid duplicate frame indices
+    indices = np.unique(indices)
 
     frames = []
 
     for idx in indices:
 
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        cap.set(
+            cv2.CAP_PROP_POS_FRAMES,
+            int(idx)
+        )
 
         ret, frame = cap.read()
 
-        if ret:
+        if not ret:
+            continue
 
-            frame = cv2.cvtColor(
-                frame,
-                cv2.COLOR_BGR2RGB
-            )
+        frame = cv2.cvtColor(
+            frame,
+            cv2.COLOR_BGR2RGB
+        )
 
-            frames.append(frame)
+        frames.append(frame)
 
     cap.release()
 
     return frames
 
 
+# =========================================================
+# VIDEO PREDICTION
+# =========================================================
+
 def predict_video(video_path):
 
     frames = extract_frames(video_path)
+
+    # -----------------------------------------------------
+    # No frames
+    # -----------------------------------------------------
 
     if len(frames) == 0:
 
@@ -89,9 +135,15 @@ def predict_video(video_path):
             "frames": 0
         }
 
+
     real_probs = []
     fake_probs = []
     frame_predictions = []
+
+
+    # =====================================================
+    # FRAME-LEVEL INFERENCE
+    # =====================================================
 
     with torch.no_grad():
 
@@ -105,67 +157,208 @@ def predict_video(video_path):
 
             output = model(img)
 
-            prob = torch.softmax(output, dim=1)[0]
+            prob = torch.softmax(
+                output,
+                dim=1
+            )[0]
 
-            fake_prob = float(prob[0].cpu())
+            # Class 0 = FAKE
+            # Class 1 = REAL
 
-            real_prob = float(prob[1].cpu())
+            fake_prob = float(
+                prob[0].cpu()
+            )
 
-            fake_probs.append(fake_prob)
+            real_prob = float(
+                prob[1].cpu()
+            )
 
-            real_probs.append(real_prob)
+            fake_probs.append(
+                fake_prob
+            )
+
+            real_probs.append(
+                real_prob
+            )
+
+
+            # -------------------------------------------------
+            # Frame-level diagnostic
+            # -------------------------------------------------
+
+            print(
+                f"Frame {len(real_probs):02d}: "
+                f"REAL={real_prob * 100:.2f}% | "
+                f"FAKE={fake_prob * 100:.2f}%"
+            )
+
+
+            # -------------------------------------------------
+            # Frame prediction
+            # -------------------------------------------------
 
             if real_prob >= fake_prob:
-                frame_predictions.append("REAL")
+
+                frame_predictions.append(
+                    "REAL"
+                )
+
             else:
-                frame_predictions.append("FAKE")
 
-    real_probability = np.mean(real_probs)
+                frame_predictions.append(
+                    "FAKE"
+                )
 
-    fake_probability = np.mean(fake_probs)
 
-    real_votes = frame_predictions.count("REAL")
+    # =====================================================
+    # VIDEO-LEVEL AGGREGATION
+    # =====================================================
 
-    fake_votes = frame_predictions.count("FAKE")
+    # Average probability across sampled frames
 
-    confidence = max(real_probability, fake_probability)
+    real_probability = np.mean(
+        real_probs
+    )
 
-    print("\n========== AI MODEL ==========")
-    print(f"Frames Analysed : {len(frame_predictions)}")
-    print(f"REAL Votes      : {real_votes}")
-    print(f"FAKE Votes      : {fake_votes}")
-    print(f"REAL Probability: {real_probability*100:.2f}%")
-    print(f"FAKE Probability: {fake_probability*100:.2f}%")
-    print("==============================")
+    fake_probability = np.mean(
+        fake_probs
+    )
+
+
+    # Count frame-level votes
+
+    real_votes = frame_predictions.count(
+        "REAL"
+    )
+
+    fake_votes = frame_predictions.count(
+        "FAKE"
+    )
+
+
+    # Overall model confidence
+
+    confidence = max(
+        real_probability,
+        fake_probability
+    )
+
+
+    # =====================================================
+    # MODEL OUTPUT
+    # =====================================================
+
+    print(
+        "\n========== AI MODEL =========="
+    )
+
+    print(
+        f"Frames Analysed : "
+        f"{len(frame_predictions)}"
+    )
+
+    print(
+        f"REAL Votes      : "
+        f"{real_votes}"
+    )
+
+    print(
+        f"FAKE Votes      : "
+        f"{fake_votes}"
+    )
+
+    print(
+        f"REAL Probability: "
+        f"{real_probability * 100:.2f}%"
+    )
+
+    print(
+        f"FAKE Probability: "
+        f"{fake_probability * 100:.2f}%"
+    )
+
+    print(
+        f"Model Confidence: "
+        f"{confidence * 100:.2f}%"
+    )
+
+    print(
+        "=============================="
+    )
+
+
+    # =====================================================
+    # FINAL VIDEO CLASSIFICATION
+    # =====================================================
 
     if real_probability >= fake_probability:
 
         status = "Authentic"
 
-        score = real_probability * 100
+        # DTFE expects trust score:
+        # higher = more authentic
+
+        score = (
+            real_probability * 100
+        )
 
     else:
 
         status = "Deepfake"
 
-        # DTFE expects a trust score.
-        # Lower trust = more fake.
-        score = (1 - fake_probability) * 100
+        # DTFE expects trust score:
+        # lower = more fake
+
+        score = (
+            (1 - fake_probability) * 100
+        )
+
+
+    # =====================================================
+    # EXPLANATION
+    # =====================================================
 
     reason = (
-        f"Analyzed {len(frame_predictions)} sampled frames. "
+        f"Analyzed "
+        f"{len(frame_predictions)} "
+        f"sampled frames. "
         f"REAL votes: {real_votes}, "
         f"FAKE votes: {fake_votes}. "
-        f"Average confidence: {confidence*100:.2f}%."
+        f"Average confidence: "
+        f"{confidence * 100:.2f}%."
     )
 
+
+    # =====================================================
+    # RETURN RESULT
+    # =====================================================
+
     return {
-        "score": round(score, 2),
+
+        "score": round(
+            score,
+            2
+        ),
+
         "status": status,
+
         "reason": reason,
-        "real_probability": round(real_probability * 100, 2),
-        "fake_probability": round(fake_probability * 100, 2),
+
+        "real_probability": round(
+            real_probability * 100,
+            2
+        ),
+
+        "fake_probability": round(
+            fake_probability * 100,
+            2
+        ),
+
         "real_votes": real_votes,
+
         "fake_votes": fake_votes,
-        "frames": len(frame_predictions)
+
+        "frames": len(
+            frame_predictions
+        )
     }
