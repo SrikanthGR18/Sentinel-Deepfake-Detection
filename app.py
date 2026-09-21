@@ -46,7 +46,114 @@ users = {}
 # =========================================================
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# =========================================================
+# MEDIA INFORMATION / VALIDATION
+# =========================================================
 
+def get_media_info(media_path):
+    """
+    Collect basic metadata before running Sentinel analysis.
+    Works for video files and returns safe defaults for audio.
+    """
+
+    info = {
+        "file_size_mb": round(os.path.getsize(media_path) / (1024 * 1024), 2)
+        if os.path.exists(media_path) else 0.0,
+        "duration": 0.0,
+        "width": 0,
+        "height": 0,
+        "fps": 0.0,
+        "total_frames": 0,
+        "has_video": False,
+        "has_audio": False,
+    }
+
+    if not os.path.exists(media_path):
+        return info
+
+    # Check whether the file contains video
+    cap = cv2.VideoCapture(media_path)
+
+    if cap.isOpened():
+        info["has_video"] = True
+
+        info["width"] = int(
+            cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0
+        )
+
+        info["height"] = int(
+            cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0
+        )
+
+        info["fps"] = float(
+            cap.get(cv2.CAP_PROP_FPS) or 0
+        )
+
+        info["total_frames"] = int(
+            cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0
+        )
+
+        if info["fps"] > 0:
+            info["duration"] = round(
+                info["total_frames"] / info["fps"],
+                2
+            )
+
+        cap.release()
+
+    # Check for an audio stream using FFmpeg
+    ffmpeg = get_ffmpeg_path()
+
+    if ffmpeg:
+        try:
+            result = subprocess.run(
+                [
+                    ffmpeg,
+                    "-i",
+                    media_path
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=15
+            )
+
+            stderr = result.stderr.lower()
+
+            info["has_audio"] = (
+                "audio:" in stderr
+                or "audio stream" in stderr
+            )
+
+        except Exception:
+            info["has_audio"] = False
+
+    return info
+
+
+def validate_media(media_path):
+    """
+    Basic validation before Sentinel processing.
+    Returns:
+        (True, "OK") when valid
+        (False, reason) when invalid
+    """
+
+    if not os.path.exists(media_path):
+        return False, "Uploaded file could not be found."
+
+    if os.path.getsize(media_path) == 0:
+        return False, "Uploaded file is empty."
+
+    info = get_media_info(media_path)
+
+    if not info["has_video"] and not info["has_audio"]:
+        return False, "No valid video or audio stream was detected."
+
+    if info["has_video"] and info["total_frames"] < 2:
+        return False, "Video contains insufficient frames for analysis."
+
+    return True, "Media validation successful."
 
 # =========================================================
 # FFmpeg Detection
@@ -433,7 +540,24 @@ def dashboard():
 
             file.save(video_path)
 
+            # =================================================
+            # MEDIA VALIDATION
+            # =================================================
+
+            media_valid, media_message = validate_media(video_path)
+
+            if not media_valid:
+                flash(media_message, "error")
+
+                if os.path.exists(video_path):
+                    os.remove(video_path)
+
+                return redirect(request.url)
+
+            media_info = get_media_info(video_path)
+
             audio_only = is_audio_only_upload(video_path)
+
 
             # =================================================
             # AMMP - Adaptive Multi-Modal Preprocessing
@@ -570,6 +694,17 @@ def dashboard():
         template_kwargs = dict(
             has_analysis=True,
             audio_only=audio_only,
+
+            # Media information
+            media_file_size_mb=media_info["file_size_mb"],
+            media_duration=media_info["duration"],
+            media_width=media_info["width"],
+            media_height=media_info["height"],
+            media_fps=media_info["fps"],
+            media_total_frames=media_info["total_frames"],
+            media_has_video=media_info["has_video"],
+            media_has_audio=media_info["has_audio"],
+
             analysis_summary=fusion_result.summary,
             pipeline_mode=fusion_result.mode.value,
             uploaded_filename=filename,
