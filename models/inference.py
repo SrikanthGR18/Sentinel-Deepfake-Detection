@@ -1,11 +1,26 @@
+
 import cv2
 import torch
 import numpy as np
 
+from pathlib import Path
 from torchvision import transforms
 from PIL import Image
 
 from models.video_model import get_model
+
+
+# =========================================================
+# PROJECT PATHS
+# =========================================================
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+CHECKPOINT = (
+    PROJECT_ROOT
+    / "weights"
+    / "best_model_clean.pth"
+)
 
 
 # =========================================================
@@ -21,14 +36,20 @@ DEVICE = torch.device(
 # LOAD MODEL
 # =========================================================
 
+if not CHECKPOINT.is_file():
+    raise FileNotFoundError(
+        f"Model checkpoint not found: {CHECKPOINT}"
+    )
+
 model = get_model()
 
-model.load_state_dict(
-    torch.load(
-        "weights/best_model.pth",
-        map_location=DEVICE
-    )
+state_dict = torch.load(
+    CHECKPOINT,
+    map_location=DEVICE,
+    weights_only=True
 )
+
+model.load_state_dict(state_dict)
 
 model.to(DEVICE)
 model.eval()
@@ -54,7 +75,7 @@ transform = transforms.Compose([
 
 def extract_frames(video_path, num_frames=10):
 
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(str(video_path))
 
     if not cap.isOpened():
         return []
@@ -119,7 +140,7 @@ def predict_video(video_path):
     frames = extract_frames(video_path)
 
     # -----------------------------------------------------
-    # No frames
+    # No frames extracted
     # -----------------------------------------------------
 
     if len(frames) == 0:
@@ -135,11 +156,9 @@ def predict_video(video_path):
             "frames": 0
         }
 
-
     real_probs = []
     fake_probs = []
     frame_predictions = []
-
 
     # =====================================================
     # FRAME-LEVEL INFERENCE
@@ -173,14 +192,8 @@ def predict_video(video_path):
                 prob[1].cpu()
             )
 
-            fake_probs.append(
-                fake_prob
-            )
-
-            real_probs.append(
-                real_prob
-            )
-
+            fake_probs.append(fake_prob)
+            real_probs.append(real_prob)
 
             # -------------------------------------------------
             # Frame-level diagnostic
@@ -192,23 +205,17 @@ def predict_video(video_path):
                 f"FAKE={fake_prob * 100:.2f}%"
             )
 
-
             # -------------------------------------------------
             # Frame prediction
             # -------------------------------------------------
 
             if real_prob >= fake_prob:
 
-                frame_predictions.append(
-                    "REAL"
-                )
+                frame_predictions.append("REAL")
 
             else:
 
-                frame_predictions.append(
-                    "FAKE"
-                )
-
+                frame_predictions.append("FAKE")
 
     # =====================================================
     # VIDEO-LEVEL AGGREGATION
@@ -216,76 +223,60 @@ def predict_video(video_path):
 
     # Average probability across sampled frames
 
-    real_probability = np.mean(
-        real_probs
+    real_probability = float(
+        np.mean(real_probs)
     )
 
-    fake_probability = np.mean(
-        fake_probs
+    fake_probability = float(
+        np.mean(fake_probs)
     )
-
 
     # Count frame-level votes
 
-    real_votes = frame_predictions.count(
-        "REAL"
-    )
+    real_votes = frame_predictions.count("REAL")
 
-    fake_votes = frame_predictions.count(
-        "FAKE"
-    )
-
+    fake_votes = frame_predictions.count("FAKE")
 
     # Overall model confidence
+    # This is the maximum averaged softmax score,
+    # not a calibrated probability of authenticity.
 
     confidence = max(
         real_probability,
         fake_probability
     )
 
-
     # =====================================================
     # MODEL OUTPUT
     # =====================================================
 
+    print("\n========== AI MODEL ==========")
+
     print(
-        "\n========== AI MODEL =========="
+        f"Frames Analysed : {len(frame_predictions)}"
     )
 
     print(
-        f"Frames Analysed : "
-        f"{len(frame_predictions)}"
+        f"REAL Votes      : {real_votes}"
     )
 
     print(
-        f"REAL Votes      : "
-        f"{real_votes}"
+        f"FAKE Votes      : {fake_votes}"
     )
 
     print(
-        f"FAKE Votes      : "
-        f"{fake_votes}"
+        f"REAL Probability: {real_probability * 100:.2f}%"
     )
 
     print(
-        f"REAL Probability: "
-        f"{real_probability * 100:.2f}%"
+        f"FAKE Probability: {fake_probability * 100:.2f}%"
     )
 
     print(
-        f"FAKE Probability: "
-        f"{fake_probability * 100:.2f}%"
+        f"Model Confidence: {confidence * 100:.2f}%"
     )
 
-    print(
-        f"Model Confidence: "
-        f"{confidence * 100:.2f}%"
-    )
-
-    print(
-        "=============================="
-    )
-
+    print("==============================")
 
     # =====================================================
     # FINAL VIDEO CLASSIFICATION
@@ -295,70 +286,52 @@ def predict_video(video_path):
 
         status = "Authentic"
 
-        # DTFE expects trust score:
-        # higher = more authentic
+        # Higher score = more REAL
 
-        score = (
-            real_probability * 100
-        )
+        score = real_probability * 100
 
     else:
 
         status = "Deepfake"
 
-        # DTFE expects trust score:
-        # lower = more fake
+        # Lower score = more FAKE
+        # Preserves the existing DTFE score convention.
 
-        score = (
-            (1 - fake_probability) * 100
-        )
-
+        score = (1 - fake_probability) * 100
 
     # =====================================================
     # EXPLANATION
     # =====================================================
 
     reason = (
-        f"Analyzed "
-        f"{len(frame_predictions)} "
-        f"sampled frames. "
+        f"Analyzed {len(frame_predictions)} sampled frames. "
         f"REAL votes: {real_votes}, "
         f"FAKE votes: {fake_votes}. "
-        f"Average confidence: "
-        f"{confidence * 100:.2f}%."
+        f"Average confidence: {confidence * 100:.2f}%."
     )
-
 
     # =====================================================
     # RETURN RESULT
     # =====================================================
 
     return {
-
-        "score": round(
-            score,
-            2
-        ),
+        "score": round(score, 2),
 
         "status": status,
 
         "reason": reason,
 
         "real_probability": round(
-            real_probability * 100,
-            2
+            real_probability * 100, 2
         ),
 
         "fake_probability": round(
-            fake_probability * 100,
-            2
+            fake_probability * 100, 2
         ),
 
         "real_votes": real_votes,
 
         "fake_votes": fake_votes,
 
-        "frames": len(
-            frame_predictions
-        )
+        "frames": len(frame_predictions)
     }
